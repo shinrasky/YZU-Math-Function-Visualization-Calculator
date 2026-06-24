@@ -1,0 +1,47 @@
+name: Build (Windows + MSYS2)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-raylib
+
+      - name: Configure (CMake)
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DRAYLIB_ROOT=/mingw64
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake --build build -- -j2
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: math_calculator-windows
+          path: |
+            build/math_calculator.exe
+            build/*.dll
+          if-no-files-found: warn
